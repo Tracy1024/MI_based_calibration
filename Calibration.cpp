@@ -35,7 +35,7 @@ namespace perls {
 //        char *scan_base_name;
 //        scan_base_name = config_get_str_or_default (this->m_ConfigHandle, "calibration.scan.scan_base_name", (char*)"Scan");
         char *scan_type;
-        scan_type = config_get_str_or_default (this->m_ConfigHandle, "calibration.scan.scan_type", (char*)"txt");
+        scan_type = config_get_str_or_default (this->m_ConfigHandle, "calibration.scan.scan_type", (char*)"pcd");
         int total_scans;
         total_scans = config_get_int_or_default (this->m_ConfigHandle, "calibration.scan.total_scans", 1);
         this->m_NumScans = config_get_int_or_default (this->m_ConfigHandle, "calibration.scan.num_scans_used", 1);
@@ -52,24 +52,24 @@ namespace perls {
 
 
         //Load these scans and corresponding images
-        cv::String scan_folder_(scan_folder);
-        std::vector<cv::String> file_names_scans;
+        std::string scan_folder_(scan_folder);
+        std::vector<std::string> file_names_scans;
         cv::glob(scan_folder_, file_names_scans);
 
 
         for (int s = 0; s < this->m_NumScans; s++)
         {
 //          char scan_file[256];
-//          this->m_scanIndex = use_scans[s];
+          this->m_scanIndex = use_scans[s];
 //          sprintf (scan_file, "%s/%s%04d.%s", scan_folder, scan_base_name,  use_scans[s], scan_type);
 //          printf ("%s\n", scan_file);
 
           //load scan
-          if (load_point_cloud (file_names_scans[s]) < 0)
+          if (load_point_cloud (file_names_scans[this->m_scanIndex]) < 0)
             return;
 
           //load images
-          if (load_image (use_scans[s]) < 0)
+          if (load_image (this->m_scanIndex) < 0)
             return;
         }
 
@@ -151,15 +151,19 @@ namespace perls {
         config_get_int (this->m_ConfigHandle, "calibration.cameras.num_cameras", &this->m_NumCams);
         //Allocate memory for intrinsic parameters
         this->m_Calib.K = (double**) malloc (sizeof (double*)*this->m_NumCams);
+        this->m_Calib.disto = (double**) malloc (sizeof (double*)*this->m_NumCams);
         this->m_Calib.X_hi = (ssc_pose_t*) malloc (sizeof (ssc_pose_t)*this->m_NumCams);
 
         for (int i = 0; i < this->m_NumCams; i++)
           this->m_Calib.K[i] = (double*) malloc (sizeof (double)*9);
 
         for (int i = 0; i < this->m_NumCams; i++)
+            this->m_Calib.disto[i] = (double*) malloc (sizeof (double)*6);
+
+        for (int i = 0; i < this->m_NumCams; i++)
         {
             double focal_length, disto_1, disto_2, disto_3, disto_4, disto_5, disto_6, camera_center_X, camera_center_Y;
-            char str[256];
+            char str[512];
             sprintf (str, "calibration.cameras.camera_%d.focal_length", i);
             if (config_get_double (this->m_ConfigHandle, str, &focal_length) < 0)
             {
@@ -248,7 +252,7 @@ namespace perls {
      * This function loads the Scan from the file.
      */
     int
-    Calibration::load_point_cloud (cv::String filename)
+    Calibration::load_point_cloud (std::string filename)
     {
         //open file to read
         std::cout << "Loading " << filename << std::endl;
@@ -299,8 +303,8 @@ namespace perls {
             char str[256];
             sprintf (str, "calibration.cameras.camera_%d.folder", i);
             config_get_str (this->m_ConfigHandle, str, &image_folder);
-            cv::String image_folder_(image_folder);
-            std::vector<cv::String> file_names_img;
+            std::string image_folder_(image_folder);
+            std::vector<std::string> file_names_img;
             cv::glob(image_folder, file_names_img);
             IplImage* iplimage = cvLoadImage (file_names_img[imageIndex].c_str(), 0);
 
@@ -803,10 +807,10 @@ namespace perls {
         ssc_pose_t x0_max_l1;
         ssc_pose_t x0_max_l2;
 
-        double gridsize_trans = 0.2;
-        double step_trans = 0.05;
-        double gridsize_rot = 3*DTOR;
-        double step_rot = 1*DTOR;
+        double gridsize_trans = 0.4;
+        double step_trans = 0.02;
+        double gridsize_rot = 5*DTOR;
+        double step_rot = 0.1*DTOR;
         double max_cost_l1 = 0;
         ssc_pose_set (x0_max_l1, x0_hl);
 
@@ -851,7 +855,7 @@ namespace perls {
         step_trans = 0.01;
         gridsize_trans = 0.04;
         gridsize_rot = 0.5*DTOR;
-        step_rot = 0.1*DTOR;
+        step_rot = 0.05*DTOR;
         float max_cost_l2 = this->mi_cost (x0_max_l1);
         ssc_pose_set (x0_max_l2, x0_max_l1);
 
@@ -1091,6 +1095,14 @@ namespace perls {
             delF_delP_ = delF_delP;
             delF_delH_ = delF_delH;
 
+//            double *R = (double*) malloc (sizeof (double)*9);
+//            double rph[3];
+//            ssc_pose_get_rph (xk, rph);
+//            so3_rotxyz (R, rph);
+//
+//            printf ("%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n", f_curr, xk[0], xk[1], xk[2], R[0], R[1], R[2], R[3], R[4], R[5], R[6], R[7], R[8]);
+//
+//            free(R);
             printf ("%lf %lf %lf %lf %lf %lf %lf\n", f_curr, xk[0], xk[1], xk[2], xk[3]*RTOD, xk[4]*RTOD, xk[5]*RTOD);
 
         }

@@ -7,7 +7,7 @@
 //Standard C/C++ Library
 #include <iostream>
 #include <fstream>
-#include <string.h>
+#include <cstring>
 
 //Opencv
 #include <opencv/cv.h>

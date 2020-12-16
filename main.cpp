@@ -73,6 +73,7 @@ main (int argc, char** argv)
     //BB gradient descent search
     int64_t tic = timestamp_now ();
     printf ("****************************************************************************\n");
+//    printf ("Cost | x (m) | y (m) | z (m) | r11 | r12 | r13 | r21 | r22 | r23 | r31 | r32 | r33\n");
     printf ("Cost | x (m) | y (m) | z (m) | roll (degree) | pitch (degree) | yaw (degree)\n");
     printf ("****************************************************************************\n");
     cost = calib.gradient_descent_search (calib.m_X0);
