@@ -252,10 +252,13 @@ namespace perls {
      * This function loads the Scan from the file.
      */
     int
-    Calibration::load_point_cloud (std::string filename, char* typ)
+    Calibration::load_point_cloud (std::string filename, const char* typ)
+//    int
+//    Calibration::load_point_cloud (std::string filename)
     {
-        if(typ=="pcd") {
-            //open file to read
+        const char* scan_typ = "pcd";
+        if(strcmp(typ, scan_typ)==0) {
+//            open file to read
             std::cout << "Loading " << filename << std::endl;
 
             pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>);
@@ -284,7 +287,7 @@ namespace perls {
             std::cout << "Num points loaded = " << pointCloud.points.size() << std::endl;
             return 0;
         }
-        if(typ=="txt"){
+        if(strcmp(typ, scan_typ)!=0){
 
             //open file to read
             std::cout << "Loading " << filename << std::endl;

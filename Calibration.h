@@ -168,7 +168,7 @@ namespace perls
           int m_estimatorType;
           double m_corrCoeff;
           int    load_camera_parameters ();
-          int    load_point_cloud (std::string, char* scanType);
+          int    load_point_cloud (std::string scanFile, const char* scanTyp);
           int    load_image (int imageIndex);
           int    release_image (Image_t *image);
 
