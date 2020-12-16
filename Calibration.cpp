@@ -65,7 +65,7 @@ namespace perls {
 //          printf ("%s\n", scan_file);
 
           //load scan
-          if (load_point_cloud (file_names_scans[this->m_scanIndex]) < 0)
+          if (load_point_cloud (file_names_scans[this->m_scanIndex], scan_type) < 0)
             return;
 
           //load images
@@ -252,37 +252,73 @@ namespace perls {
      * This function loads the Scan from the file.
      */
     int
-    Calibration::load_point_cloud (std::string filename)
+    Calibration::load_point_cloud (std::string filename, char* typ)
     {
-        //open file to read
-        std::cout << "Loading " << filename << std::endl;
+        if(typ=="pcd") {
+            //open file to read
+            std::cout << "Loading " << filename << std::endl;
 
-        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ (new pcl::PointCloud<pcl::PointXYZI>);
-        pcl::io::loadPCDFile<pcl::PointXYZI>(filename, *cloud_);
+            pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>);
+            pcl::io::loadPCDFile<pcl::PointXYZI>(filename, *cloud_);
 
-        double DIST_THRESH = 40000;
-        //read all points
-        PointCloud_t pointCloud;
+            double DIST_THRESH = 40000;
+            //read all points
+            PointCloud_t pointCloud;
 
-        for(int i=0; i<cloud_->points.size(); i++){
+            for (int i = 0; i < cloud_->points.size(); i++) {
 
-            if(cloud_->points[i].intensity!=0){
-                Point3d_t point;
-                point.x = cloud_->points[i].x;
-                point.y = cloud_->points[i].y;
-                point.z = cloud_->points[i].z;
-                point.refc = cloud_->points[i].intensity;
+                if (cloud_->points[i].intensity != 0) {
+                    Point3d_t point;
+                    point.x = cloud_->points[i].x;
+                    point.y = cloud_->points[i].y;
+                    point.z = cloud_->points[i].z;
+                    point.refc = cloud_->points[i].intensity;
 
-                double dist = point.x*point.x + point.y*point.y + point.z*point.z;
-                point.range = dist/DIST_THRESH;
-                pointCloud.points.push_back (point);
+                    double dist = point.x * point.x + point.y * point.y + point.z * point.z;
+                    point.range = dist / DIST_THRESH;
+                    pointCloud.points.push_back(point);
+                } else continue;
+
             }
-            else continue;
-
+            this->m_vecPointClouds.push_back(pointCloud);
+            std::cout << "Num points loaded = " << pointCloud.points.size() << std::endl;
+            return 0;
         }
-        this->m_vecPointClouds.push_back (pointCloud);
-        std::cout << "Num points loaded = " << pointCloud.points.size () << std::endl;
-        return 0;
+        if(typ=="txt"){
+
+            //open file to read
+            std::cout << "Loading " << filename << std::endl;
+            char* file = (char*)filename.c_str();
+            FILE *fptr = fopen (file, "r");
+            if (fptr == NULL)
+            {
+                std::cout << "Could not open '" << filename << "'." << std::endl;
+                exit (0);
+            }
+            int numPoints = 0;
+            fscanf (fptr, "%d\n", &numPoints);
+
+            double DIST_THRESH = 40000;
+            //read all points
+            PointCloud_t pointCloud;
+            while (!feof (fptr))
+            {
+                Point3d_t point;
+                fscanf (fptr, "%f %f %f %d\n", &point.x, &point.y, &point.z, &point.refc);
+                if(point.refc!=0) {
+                    double dist = point.x * point.x + point.y * point.y + point.z * point.z;
+                    point.refc = point.refc * 100;
+                    point.range = dist / DIST_THRESH;
+                    pointCloud.points.push_back(point);
+                    numPoints++;
+                }
+            }
+            this->m_vecPointClouds.push_back (pointCloud);
+            std::cout << "Num points loaded = " << pointCloud.points.size () << std::endl;
+            fflush (fptr);
+            fclose (fptr);
+            return 0;
+        }
     }
 
     /**
