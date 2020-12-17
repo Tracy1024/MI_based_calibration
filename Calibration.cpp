@@ -256,15 +256,20 @@ namespace perls {
 //    int
 //    Calibration::load_point_cloud (std::string filename)
     {
-        const char* scan_typ = "pcd";
-        if(strcmp(typ, scan_typ)==0) {
+        const char* scan_typ1 = "pcd";
+        const char* scan_typ2 = "txt";
+        const char* scan_typ3 = "bin";
+        std::cout << "typ = " << typ << std::endl;
+
+        //load pcd
+        if(strcmp(typ, scan_typ1)==0) {
             //open file to read
             std::cout << "Loading " << filename << std::endl;
 
             pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>);
             pcl::io::loadPCDFile<pcl::PointXYZI>(filename, *cloud_);
 
-            double DIST_THRESH = 40000;
+            double DIST_THRESH = 10000;
             //read all points
             PointCloud_t pointCloud;
 
@@ -276,7 +281,7 @@ namespace perls {
                     point.y = cloud_->points[i].y;
                     point.z = cloud_->points[i].z;
                     point.refc = cloud_->points[i].intensity;
-
+                    std::cout << "refc = " <<  point.refc << std::endl;
                     double dist = point.x * point.x + point.y * point.y + point.z * point.z;
                     point.range = dist / DIST_THRESH;
                     pointCloud.points.push_back(point);
@@ -287,7 +292,9 @@ namespace perls {
             std::cout << "Num points loaded = " << pointCloud.points.size() << std::endl;
             return 0;
         }
-        if(strcmp(typ, scan_typ)!=0){
+
+        //load txt
+        if(strcmp(typ, scan_typ2)==0){
 
             //open file to read
             std::cout << "Loading " << filename << std::endl;
@@ -301,7 +308,7 @@ namespace perls {
             int numPoints = 0;
             //fscanf (fptr, "%d\n", &numPoints);
 
-            double DIST_THRESH = 40000;
+            double DIST_THRESH = 10000;
             //read all points
             PointCloud_t pointCloud;
             while (!feof (fptr))
@@ -309,11 +316,10 @@ namespace perls {
                 Point3d_t point;
                 float refc_;
                 fscanf (fptr, "%f %f %f %f\n", &point.x, &point.y, &point.z, &refc_);
-                std::cout << "refc_ = " << refc_ << std::endl;
                 if(refc_!=0) {
                     double dist = point.x * point.x + point.y * point.y + point.z * point.z;
-                    std::cout << "refc_ = " << refc_ << std::endl;
                     point.refc = int(refc_ * 100);
+                    std::cout << "refc = " <<  point.refc << std::endl;
                     point.range = dist / DIST_THRESH;
                     pointCloud.points.push_back(point);
                     numPoints++;
@@ -325,6 +331,56 @@ namespace perls {
             fclose (fptr);
             return 0;
         }
+
+        //load bin
+        if(strcmp(typ, scan_typ3)==0){
+
+            //open file to read
+            std::cout << "Loading " << filename << std::endl;
+            std::fstream input(filename.c_str(), std::ios::in | std::ios::binary);
+            if(!input.good()){
+                std::cerr << "Could not read file: " << filename << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            input.seekg(0, std::ios::beg);
+
+            pcl::PointCloud<pcl::PointXYZI>::Ptr points (new pcl::PointCloud<pcl::PointXYZI>);
+
+            int i;
+            for (i=0; input.good() && !input.eof(); i++) {
+                pcl::PointXYZI point;
+                input.read((char *) &point.x, 3*sizeof(float));
+                input.read((char *) &point.intensity, sizeof(float));
+                points->push_back(point);
+            }
+            input.close();
+            double DIST_THRESH = 10000;
+            //read all points
+            PointCloud_t pointCloud;
+
+            for (int i = 0; i < points->points.size(); i++) {
+
+                if (points->points[i].intensity != 0) {
+                    Point3d_t point;
+                    point.x = points->points[i].x;
+                    point.y = points->points[i].y;
+                    point.z = points->points[i].z;
+                    point.refc = int(points->points[i].intensity*100);
+                    //std::cout << "refc = " <<  point.refc << std::endl;
+                    double dist = point.x * point.x + point.y * point.y + point.z * point.z;
+                    point.range = dist / DIST_THRESH;
+                    pointCloud.points.push_back(point);
+                }
+                else continue;
+
+            }
+            this->m_vecPointClouds.push_back(pointCloud);
+            std::cout << "Num points loaded = " << pointCloud.points.size() << std::endl;
+            return 0;
+
+        }
+
+
     }
 
     /**
