@@ -258,7 +258,7 @@ namespace perls {
     {
         const char* scan_typ = "pcd";
         if(strcmp(typ, scan_typ)==0) {
-//            open file to read
+            //open file to read
             std::cout << "Loading " << filename << std::endl;
 
             pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>);
@@ -295,11 +295,11 @@ namespace perls {
             FILE *fptr = fopen (file, "r");
             if (fptr == NULL)
             {
-                std::cout << "Could not open '" << filename << "'." << std::endl;
+                std::cout << "Could not open '" << file << "'." << std::endl;
                 exit (0);
             }
             int numPoints = 0;
-            fscanf (fptr, "%d\n", &numPoints);
+            //fscanf (fptr, "%d\n", &numPoints);
 
             double DIST_THRESH = 40000;
             //read all points
@@ -307,10 +307,13 @@ namespace perls {
             while (!feof (fptr))
             {
                 Point3d_t point;
-                fscanf (fptr, "%f %f %f %d\n", &point.x, &point.y, &point.z, &point.refc);
-                if(point.refc!=0) {
+                float refc_;
+                fscanf (fptr, "%f %f %f %f\n", &point.x, &point.y, &point.z, &refc_);
+                std::cout << "refc_ = " << refc_ << std::endl;
+                if(refc_!=0) {
                     double dist = point.x * point.x + point.y * point.y + point.z * point.z;
-                    point.refc = point.refc * 100;
+                    std::cout << "refc_ = " << refc_ << std::endl;
+                    point.refc = int(refc_ * 100);
                     point.range = dist / DIST_THRESH;
                     pointCloud.points.push_back(point);
                     numPoints++;
